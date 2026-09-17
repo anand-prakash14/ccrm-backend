@@ -38,3 +38,9 @@ export class BadRequestError extends AppError {
     super(400, message);
   }
 }
+
+export class ConflictError extends AppError {
+  constructor(message = 'Resource already exists') {
+    super(409, message);
+  }
+}
