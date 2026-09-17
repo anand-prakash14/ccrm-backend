@@ -68,7 +68,22 @@ tests/           Jest test suite
 plans/           Agent-produced LLD documents, one directory per Jira story
 ```
 
+## Bootstrap Admin
+
+Migration `SeedBootstrapAdmin` seeds one Admin account so the system is loggable-into
+before CA-122 (Admin creates a user) exists:
+
+```
+email:    admin@ccrm.local
+password: ChangeMe@123
+```
+
+Dev-only. Rotate immediately in any shared or non-local environment.
+
 ## Status
 
-Schema and migrations provisioned (CA-137). API endpoints are being added story-by-story —
-see Jira project **CA** for the full backlog and `plans/INDEX.md` for what has shipped.
+Schema, migrations, and auth (CA-137, CA-42, CA-138) are done. API endpoints are being
+added story-by-story — see Jira project **CA** for the full backlog and `plans/INDEX.md`
+for what has shipped. Per current direction, most stories from here on skip the full Jest
+suite until a dedicated testing pass; verification is `tsc`/`eslint` plus a manual smoke
+test, noted per plan.

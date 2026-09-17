@@ -76,7 +76,9 @@ export class InitSchema1758096000000 implements MigrationInterface {
         CONSTRAINT "fk_lead_created_by" FOREIGN KEY ("created_by") REFERENCES "app_user"("id") ON DELETE RESTRICT
       )
     `);
-    await queryRunner.query(`CREATE INDEX "idx_lead_assigned_saleman_id" ON "lead" ("assigned_saleman_id")`);
+    await queryRunner.query(
+      `CREATE INDEX "idx_lead_assigned_saleman_id" ON "lead" ("assigned_saleman_id")`,
+    );
     await queryRunner.query(`CREATE INDEX "idx_lead_stage" ON "lead" ("stage")`);
     await queryRunner.query(`CREATE INDEX "idx_lead_source" ON "lead" ("source")`);
 
@@ -100,7 +102,9 @@ export class InitSchema1758096000000 implements MigrationInterface {
     `);
     await queryRunner.query(`CREATE INDEX "idx_site_visit_lead_id" ON "site_visit" ("lead_id")`);
 
-    await queryRunner.query(`CREATE TYPE "conclusion_outcome_enum" AS ENUM ('Won', 'Lost', 'On-hold')`);
+    await queryRunner.query(
+      `CREATE TYPE "conclusion_outcome_enum" AS ENUM ('Won', 'Lost', 'On-hold')`,
+    );
     await queryRunner.query(`CREATE TYPE "lost_reason_enum" AS ENUM (
       'Budget', 'Location', 'Financing', 'Chose Competitor', 'Not Interested', 'Timing'
     )`);
