@@ -6,6 +6,7 @@ declare global {
       user?: AuthUser;
       requestId: string;
       correlationId: string;
+      isAgentInitiated: boolean;
     }
   }
 }

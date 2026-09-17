@@ -80,10 +80,34 @@ password: ChangeMe@123
 
 Dev-only. Rotate immediately in any shared or non-local environment.
 
+## Manual Smoke Test
+
+`scripts/smoke-test.mjs` exercises the full lead pipeline end-to-end (create, stage
+advancement, site visits, conclusion, RBAC, reassignment, activity log, dashboard) against
+a running dev server:
+
+```bash
+npm run dev   # in one terminal
+
+# in another — SALESMAN_ROLE_ID from: SELECT id FROM role WHERE name='SalesMan';
+SALESMAN_ROLE_ID=<uuid> node scripts/smoke-test.mjs
+```
+
+## Agent-Initiated Tagging (CA-121)
+
+`activity_log.is_agent_initiated` is set server-side from a validated `X-Agent-Service-Key`
+header matched against the `AGENT_SERVICE_KEY` env var — never from a client-supplied flag
+(spoofable). Only the not-yet-built MCP Server (Agents module) would be configured with
+this key; until then, `AGENT_SERVICE_KEY` is unset and every write is UI-initiated.
+
 ## Status
 
-Schema, migrations, and auth (CA-137, CA-42, CA-138) are done. API endpoints are being
-added story-by-story — see Jira project **CA** for the full backlog and `plans/INDEX.md`
-for what has shipped. Per current direction, most stories from here on skip the full Jest
-suite until a dedicated testing pass; verification is `tsc`/`eslint` plus a manual smoke
-test, noted per plan.
+Schema, migrations, auth, user management, and the full lead pipeline (CA-137, CA-42,
+CA-138, CA-122, CA-123, CA-2, CA-10, CA-17, CA-24, CA-25, CA-26, CA-27, CA-28 backend half,
+CA-29, CA-43, CA-66, CA-67, CA-83, CA-84, CA-92, CA-93, CA-94, CA-121, CA-95/96/112
+satisfied by design — same JWT/RBAC path for every caller) are done. Remaining: CA-141
+(containerize), CA-142 (rest of observability). CA-113/114/136/139/140 belong to the
+Agents module (Python/Google ADK) — out of scope for this Node backend. See Jira project
+**CA** for the full backlog and `plans/INDEX.md` for what has shipped. Per current
+direction, most stories from here on skip the full Jest suite until a dedicated testing
+pass; verification is `tsc`/`eslint` plus the manual smoke test above.

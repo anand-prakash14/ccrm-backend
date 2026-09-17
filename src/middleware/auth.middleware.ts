@@ -9,12 +9,12 @@ import { RoleName } from '@/entities/Role.entity';
 
 export interface AuthUser {
   id: string;
-  role: string;
+  role: RoleName;
 }
 
 interface AccessTokenPayload {
   sub: string;
-  role: string;
+  role: RoleName;
 }
 
 const AUTH_HEADER_PREFIX = 'Bearer ';
@@ -53,7 +53,7 @@ export function requireRole(...allowedRoles: RoleName[]) {
       next(new UnauthorizedError());
       return;
     }
-    if (!allowedRoles.includes(req.user.role as RoleName)) {
+    if (!allowedRoles.includes(req.user.role)) {
       next(new ForbiddenError());
       return;
     }

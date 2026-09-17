@@ -17,6 +17,12 @@ const EnvSchema = z.object({
 
   JWT_SECRET: z.string().min(32),
   JWT_EXPIRES_IN: z.string().default('30m'),
+
+  // Shared secret presented by the MCP Server (Agents module) — never sent
+  // by the Web Frontend — used to determine activity_log.is_agent_initiated
+  // server-side (CA-121). Optional: the Agents module isn't built in this
+  // phase, so agent-tagging simply never activates until it's configured.
+  AGENT_SERVICE_KEY: z.string().min(16).optional(),
 });
 
 export type Env = z.infer<typeof EnvSchema>;
