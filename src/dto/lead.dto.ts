@@ -78,7 +78,7 @@ const LeadDataSchema = z.object({
   financingStatus: z.string().nullable(),
   purchaseTimeline: z.string().nullable(),
   requirementNotes: z.string().nullable(),
-  createdBy: z.string().uuid(),
+  createdById: z.string().uuid(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });

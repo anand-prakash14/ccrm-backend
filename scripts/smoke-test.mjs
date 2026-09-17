@@ -87,6 +87,19 @@ async function main() {
   });
   const leadId = enquiryJson.data.id;
 
+  {
+    const { status, json } = await api(
+      'GET',
+      `/v1/leads/${leadId}/conclusion`,
+      salesmanA.token,
+    );
+    check(
+      'GET /v1/leads/:id/conclusion: null before any conclusion is recorded',
+      status === 200 && json.data === null,
+      json,
+    );
+  }
+
   // --- CA-43: SalesMan B cannot see/edit SalesMan A's lead ---
   {
     const { status } = await api('GET', `/v1/leads/${leadId}`, salesmanB.token);
@@ -496,6 +509,17 @@ async function main() {
       'CA-26: lead stage is Conclusion',
       leadStatus === 200 && leadJson.data.stage === 'Conclusion',
     );
+
+    const { status: getConcStatus, json: getConcJson } = await api(
+      'GET',
+      `/v1/leads/${leadId}/conclusion`,
+      salesmanA.token,
+    );
+    check(
+      'GET /v1/leads/:id/conclusion: returns the recorded Won conclusion',
+      getConcStatus === 200 && getConcJson.data?.outcome === 'Won',
+      getConcJson,
+    );
   }
 
   // --- CA-27: Conclusion Lost (on a second, fresh lead) ---
@@ -582,6 +606,35 @@ async function main() {
         Array.isArray(adminJson.data.bySaleman) &&
         adminJson.data.bySaleman.length > 0,
       adminJson.data.bySaleman,
+    );
+  }
+
+  // --- GET /v1/users: frontend binding (SalesMan pickers, name lookups) ---
+  {
+    const { status, json } = await api('GET', '/v1/users', salesmanA.token);
+    check(
+      'GET /v1/users: any authenticated caller can list users',
+      status === 200 && Array.isArray(json.data) && json.data.length >= 3,
+      json,
+    );
+    const bootstrapAdmin = json.data.find((u) => u.email === 'admin@ccrm.local');
+    check(
+      'GET /v1/users: entries expose id/name/email/role/isActive',
+      bootstrapAdmin &&
+        typeof bootstrapAdmin.id === 'string' &&
+        bootstrapAdmin.role === 'Admin' &&
+        bootstrapAdmin.isActive === true,
+      bootstrapAdmin,
+    );
+  }
+
+  // --- Lead response uses createdById (not createdBy) ---
+  {
+    const { status, json } = await api('GET', `/v1/leads/${leadId}`, salesmanA.token);
+    check(
+      'GET /v1/leads/:id: response field is createdById',
+      status === 200 && json.data.createdById === salesmanA.user.id && json.data.createdBy === undefined,
+      json.data,
     );
   }
 

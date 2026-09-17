@@ -28,6 +28,11 @@ export class UserService {
     private readonly roleRepository: RoleRepository,
   ) {}
 
+  /** Any authenticated user — populates SalesMan pickers and lead filters. */
+  async listUsers(): Promise<AppUser[]> {
+    return this.userRepository.findAll();
+  }
+
   /**
    * Admin-only (enforced by requireRole at the route level — CA-122).
    * `password_hash` is not client-supplied; a temporary password is

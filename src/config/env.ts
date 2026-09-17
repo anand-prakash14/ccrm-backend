@@ -13,6 +13,10 @@ const EnvSchema = z.object({
   DATABASE_URL: z.string().url(),
   DB_POOL_MAX: z.coerce.number().int().min(1).max(50).default(10),
 
+  // Comma-separated list of origins allowed to call this API from a browser
+  // (the Web Frontend's dev server and, later, its deployed origin).
+  CORS_ORIGIN: z.string().default('http://localhost:5173'),
+
   REDIS_URL: z.string().url(),
 
   JWT_SECRET: z.string().min(32),

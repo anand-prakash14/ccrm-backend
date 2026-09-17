@@ -26,6 +26,17 @@ export class ConclusionService {
     private readonly activityLogRepository: ActivityLogRepository,
   ) {}
 
+  /** Read-side counterpart to recordConclusion — returns null if none recorded yet. */
+  async getConclusion(actor: AuthUser, leadId: string): Promise<Conclusion | null> {
+    const lead = await this.leadRepository.findById(leadId);
+    if (!lead) {
+      throw new NotFoundError(`Lead ${leadId} not found`);
+    }
+    assertLeadAccess(actor, lead.assignedSalemanId, lead.createdById);
+
+    return this.conclusionRepository.findByLeadId(leadId);
+  }
+
   /** CA-26 (Won) / CA-27 (Lost, On-hold) — moves the lead to the Conclusion stage. */
   async recordConclusion(
     actor: AuthUser,

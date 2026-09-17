@@ -32,7 +32,7 @@ export function toLeadResponseData(lead: Lead): Record<string, unknown> {
     financingStatus: lead.financingStatus,
     purchaseTimeline: lead.purchaseTimeline,
     requirementNotes: lead.requirementNotes,
-    createdBy: lead.createdById,
+    createdById: lead.createdById,
     createdAt: lead.createdAt.toISOString(),
     updatedAt: lead.updatedAt.toISOString(),
   };

@@ -4,7 +4,11 @@ import { Request, Response, NextFunction } from 'express';
 // 3. Internal
 import { conclusionService } from '@/config/container';
 import { logger } from '@/config/logger';
-import { ConclusionResponseSchema, RecordConclusionRequest } from '@/dto/conclusion.dto';
+import {
+  ConclusionResponseSchema,
+  GetConclusionResponseSchema,
+  RecordConclusionRequest,
+} from '@/dto/conclusion.dto';
 import { Conclusion } from '@/entities/Conclusion.entity';
 
 function toConclusionResponseData(conclusion: Conclusion): Record<string, unknown> {
@@ -20,6 +24,23 @@ function toConclusionResponseData(conclusion: Conclusion): Record<string, unknow
     notes: conclusion.notes,
     createdAt: conclusion.createdAt.toISOString(),
   };
+}
+
+export async function getConclusion(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  try {
+    const conclusion = await conclusionService.getConclusion(req.user!, req.params.leadId);
+    res.status(200).json(
+      GetConclusionResponseSchema.parse({
+        data: conclusion ? toConclusionResponseData(conclusion) : null,
+      }),
+    );
+  } catch (err) {
+    next(err);
+  }
 }
 
 export async function recordConclusion(

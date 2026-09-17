@@ -19,6 +19,10 @@ export class UserRepository {
     return this.repo.findOne({ where: { id }, relations: ['role'] });
   }
 
+  async findAll(): Promise<AppUser[]> {
+    return this.repo.find({ relations: ['role'], order: { name: 'ASC' } });
+  }
+
   async findPaginated(skip: number, take: number): Promise<{ items: AppUser[]; total: number }> {
     const [items, total] = await this.repo.findAndCount({
       relations: ['role'],

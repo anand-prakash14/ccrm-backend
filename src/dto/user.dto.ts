@@ -21,6 +21,18 @@ export const CreateUserResponseSchema = z.object({
   }),
 });
 
+export const UserListResponseSchema = z.object({
+  data: z.array(
+    z.object({
+      id: z.string().uuid(),
+      name: z.string(),
+      email: z.string().email(),
+      role: z.string(),
+      isActive: z.boolean(),
+    }),
+  ),
+});
+
 export const UpdateUserRequestSchema = z.object({
   isActive: z.boolean(),
 });

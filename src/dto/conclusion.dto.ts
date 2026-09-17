@@ -32,5 +32,6 @@ const ConclusionDataSchema = z.object({
 });
 
 export const ConclusionResponseSchema = z.object({ data: ConclusionDataSchema });
+export const GetConclusionResponseSchema = z.object({ data: ConclusionDataSchema.nullable() });
 
 export type RecordConclusionRequest = z.infer<typeof RecordConclusionRequestSchema>;

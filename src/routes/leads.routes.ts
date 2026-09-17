@@ -3,7 +3,7 @@ import { Router } from 'express';
 
 // 3. Internal
 import { addActivityLogNote, getActivityLog } from '@/controllers/activity-log.controller';
-import { recordConclusion } from '@/controllers/conclusions.controller';
+import { getConclusion, recordConclusion } from '@/controllers/conclusions.controller';
 import { createEnquiry, getLead, listLeads, updateLead } from '@/controllers/leads.controller';
 import {
   attachSiteVisitProperty,
@@ -79,6 +79,12 @@ leadsRouter.patch(
   updateSiteVisitPropertyStatus,
 );
 
+leadsRouter.get(
+  '/:leadId/conclusion',
+  requireAuth,
+  validateParams(LeadIdParamsSchema),
+  getConclusion,
+);
 leadsRouter.post(
   '/:leadId/conclusion',
   requireAuth,

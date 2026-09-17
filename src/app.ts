@@ -1,7 +1,9 @@
 // 2. Third-party
+import cors from 'cors';
 import express, { Express } from 'express';
 
 // 3. Internal
+import { env } from '@/config/env';
 import { authRouter } from '@/routes/auth.routes';
 import { bhkTypesRouter } from '@/routes/bhk-types.routes';
 import { dashboardRouter } from '@/routes/dashboard.routes';
@@ -18,6 +20,8 @@ import { requestLoggingMiddleware } from '@/middleware/request-logging.middlewar
 export function createApp(): Express {
   const app = express();
 
+  const allowedOrigins = env.CORS_ORIGIN.split(',').map((origin) => origin.trim());
+  app.use(cors({ origin: allowedOrigins }));
   app.use(express.json());
   app.use(correlationIdMiddleware);
   app.use(agentContextMiddleware);
