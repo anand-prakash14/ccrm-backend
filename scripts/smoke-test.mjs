@@ -175,7 +175,106 @@ async function main() {
     });
   }
 
-  // --- CA-24: Schedule Site Visit ---
+  // --- CA-151/CA-152: BHK types + Property master data ---
+  let property1Id;
+  let property2Id;
+  let property3Id;
+  {
+    const { status: bhkStatus, json: bhkJson } = await api('GET', '/v1/bhk-types', salesmanA.token);
+    check(
+      'CA-151: bhk-types seeded with 5 fixed types',
+      bhkStatus === 200 && bhkJson.data.length === 5,
+      bhkJson,
+    );
+    const twoBhk = bhkJson.data.find((b) => b.name === '2BHK');
+    const threeBhk = bhkJson.data.find((b) => b.name === '3BHK');
+
+    const { status: forbiddenCreate } = await api('POST', '/v1/properties', salesmanA.token, {
+      name: 'Should Fail',
+      projectName: 'X',
+      city: 'Pune',
+      locality: 'Baner',
+      bhkTypeId: twoBhk.id,
+      price: 5000000,
+    });
+    check('CA-152: SalesMan blocked from creating a property (403)', forbiddenCreate === 403);
+
+    const { status: missingFieldsStatus } = await api('POST', '/v1/properties', admin.token, {
+      name: 'Incomplete',
+    });
+    check('CA-152: missing required property fields rejected (422)', missingFieldsStatus === 422);
+
+    const { status: p1Status, json: p1Json } = await api('POST', '/v1/properties', admin.token, {
+      name: 'Skyline Towers A-1204',
+      projectName: 'Skyline Towers',
+      city: 'Pune',
+      locality: 'Baner',
+      bhkTypeId: twoBhk.id,
+      areaSqft: 950,
+      price: 6500000,
+    });
+    check('CA-152: Admin creates property 1', p1Status === 201, p1Json);
+    property1Id = p1Json?.data?.id;
+
+    const { status: p2Status, json: p2Json } = await api('POST', '/v1/properties', admin.token, {
+      name: 'Skyline Towers B-2201',
+      projectName: 'Skyline Towers',
+      city: 'Pune',
+      locality: 'Baner',
+      bhkTypeId: threeBhk.id,
+      areaSqft: 1400,
+      price: 9500000,
+    });
+    property2Id = p2Json?.data?.id;
+
+    const { status: p3Status, json: p3Json } = await api('POST', '/v1/properties', admin.token, {
+      name: 'Green Meadows C-0501',
+      projectName: 'Green Meadows',
+      city: 'Pune',
+      locality: 'Wakad',
+      bhkTypeId: twoBhk.id,
+      areaSqft: 900,
+      price: 6200000,
+    });
+    property3Id = p3Json?.data?.id;
+    check(
+      'CA-152: all 3 properties created',
+      p1Status === 201 && p2Status === 201 && p3Status === 201,
+    );
+
+    const { status: searchStatus, json: searchJson } = await api(
+      'GET',
+      '/v1/properties?city=Pune&locality=Baner',
+      salesmanA.token,
+    );
+    check(
+      'CA-152: SalesMan can search properties by city/locality',
+      searchStatus === 200 && searchJson.data.length >= 2,
+      searchJson,
+    );
+
+    const { status: updateForbidden } = await api(
+      'PATCH',
+      `/v1/properties/${property1Id}`,
+      salesmanA.token,
+      { status: 'Sold' },
+    );
+    check('CA-152: SalesMan blocked from updating a property (403)', updateForbidden === 403);
+
+    const { status: updateStatus, json: updateJson } = await api(
+      'PATCH',
+      `/v1/properties/${property1Id}`,
+      admin.token,
+      { price: 6600000 },
+    );
+    check(
+      'CA-152: Admin updates a property',
+      updateStatus === 200 && updateJson.data.price === 6600000,
+      updateJson,
+    );
+  }
+
+  // --- CA-153: Attach one or more Properties to a Site Visit ---
   let visitId;
   {
     const { status: missingStatus } = await api(
@@ -184,17 +283,34 @@ async function main() {
       salesmanA.token,
       {
         scheduledAt: new Date().toISOString(),
+        accompanyingSalemanId: salesmanA.user.id,
+        propertyIds: [],
       },
     );
-    check('CA-24: missing site visit fields rejected (422)', missingStatus === 422);
+    check('CA-153: empty propertyIds rejected (422)', missingStatus === 422);
+
+    const { status: unknownPropertyStatus } = await api(
+      'POST',
+      `/v1/leads/${leadId}/site-visits`,
+      salesmanA.token,
+      {
+        scheduledAt: new Date().toISOString(),
+        accompanyingSalemanId: salesmanA.user.id,
+        propertyIds: ['00000000-0000-0000-0000-000000000000'],
+      },
+    );
+    check('CA-153: non-existent property id rejected (400)', unknownPropertyStatus === 400);
 
     const { status, json } = await api('POST', `/v1/leads/${leadId}/site-visits`, salesmanA.token, {
       scheduledAt: new Date(Date.now() + 86400000).toISOString(),
-      propertyProject: 'Skyline Towers',
-      units: 'A-1204',
       accompanyingSalemanId: salesmanA.user.id,
+      propertyIds: [property1Id, property2Id],
     });
-    check('CA-24: site visit created, lead stage -> Site Visit', status === 201, json);
+    check(
+      'CA-153: site visit created with 2 attached properties, lead stage -> Site Visit',
+      status === 201 && json.data.properties.length === 2,
+      json,
+    );
     visitId = json?.data?.id;
 
     const { status: leadStatus, json: leadJson } = await api(
@@ -203,13 +319,87 @@ async function main() {
       salesmanA.token,
     );
     check(
-      'CA-24: lead stage is Site Visit',
+      'CA-153/CA-24: lead stage is Site Visit',
       leadStatus === 200 && leadJson.data.stage === 'Site Visit',
       leadJson,
     );
+
+    const { status: listStatus, json: listJson } = await api(
+      'GET',
+      `/v1/leads/${leadId}/site-visits`,
+      salesmanA.token,
+    );
+    check(
+      'CA-153: GET site-visits list returns the visit with embedded properties',
+      listStatus === 200 &&
+        listJson.data.length === 1 &&
+        listJson.data[0].properties.every((p) => p.status === 'Scheduled'),
+      listJson,
+    );
+
+    const { status: attachStatus, json: attachJson } = await api(
+      'POST',
+      `/v1/leads/${leadId}/site-visits/${visitId}/properties`,
+      salesmanA.token,
+      { propertyId: property3Id },
+    );
+    check(
+      'CA-153: attach an additional property to an in-progress visit',
+      attachStatus === 201 && attachJson.data.status === 'Scheduled',
+      attachJson,
+    );
+
+    const { status: dupAttachStatus } = await api(
+      'POST',
+      `/v1/leads/${leadId}/site-visits/${visitId}/properties`,
+      salesmanA.token,
+      { propertyId: property3Id },
+    );
+    check('CA-153: attaching the same property twice rejected (409)', dupAttachStatus === 409);
   }
 
-  // --- CA-25: Track Site Visit status/feedback ---
+  // --- CA-154: Track individual Property status within a Site Visit ---
+  {
+    const { status, json } = await api(
+      'PATCH',
+      `/v1/leads/${leadId}/site-visits/${visitId}/properties/${property1Id}`,
+      salesmanA.token,
+      { status: 'Shortlisted', notes: 'Buyer loved the balcony view' },
+    );
+    check(
+      "CA-154: update one property's status to Shortlisted",
+      status === 200 && json.data.status === 'Shortlisted',
+      json,
+    );
+
+    const { status: rejectStatus, json: rejectJson } = await api(
+      'PATCH',
+      `/v1/leads/${leadId}/site-visits/${visitId}/properties/${property2Id}`,
+      salesmanA.token,
+      { status: 'Rejected', notes: 'Too far from school' },
+    );
+    check("CA-154: update a different property's status to Rejected", rejectStatus === 200);
+
+    const { status: listStatus, json: listJson } = await api(
+      'GET',
+      `/v1/leads/${leadId}/site-visits`,
+      salesmanA.token,
+    );
+    const visit = listJson?.data?.find((v) => v.id === visitId);
+    const p1 = visit?.properties?.find((p) => p.propertyId === property1Id);
+    const p2 = visit?.properties?.find((p) => p.propertyId === property2Id);
+    const p3 = visit?.properties?.find((p) => p.propertyId === property3Id);
+    check(
+      'CA-154: each property tracks its own status independently on the same visit',
+      listStatus === 200 &&
+        p1?.status === 'Shortlisted' &&
+        p2?.status === 'Rejected' &&
+        p3?.status === 'Scheduled',
+      { p1: p1?.status, p2: p2?.status, p3: p3?.status },
+    );
+  }
+
+  // --- CA-25: Track Site Visit's own overall status/feedback (independent of per-property status) ---
   {
     const { status: missingFeedback } = await api(
       'PATCH',

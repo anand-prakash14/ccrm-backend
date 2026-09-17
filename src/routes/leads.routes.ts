@@ -5,7 +5,13 @@ import { Router } from 'express';
 import { addActivityLogNote, getActivityLog } from '@/controllers/activity-log.controller';
 import { recordConclusion } from '@/controllers/conclusions.controller';
 import { createEnquiry, getLead, listLeads, updateLead } from '@/controllers/leads.controller';
-import { scheduleSiteVisit, updateSiteVisit } from '@/controllers/site-visits.controller';
+import {
+  attachSiteVisitProperty,
+  listSiteVisits,
+  scheduleSiteVisit,
+  updateSiteVisit,
+  updateSiteVisitPropertyStatus,
+} from '@/controllers/site-visits.controller';
 import { AddActivityLogNoteRequestSchema } from '@/dto/activity-log.dto';
 import { RecordConclusionRequestSchema } from '@/dto/conclusion.dto';
 import {
@@ -15,8 +21,11 @@ import {
   PatchLeadRequestSchema,
 } from '@/dto/lead.dto';
 import {
+  AttachSiteVisitPropertyRequestSchema,
   CreateSiteVisitRequestSchema,
   SiteVisitParamsSchema,
+  SiteVisitPropertyParamsSchema,
+  UpdateSiteVisitPropertyRequestSchema,
   UpdateSiteVisitRequestSchema,
 } from '@/dto/site-visit.dto';
 import { requireAuth } from '@/middleware/auth.middleware';
@@ -35,6 +44,12 @@ leadsRouter.patch(
   updateLead,
 );
 
+leadsRouter.get(
+  '/:leadId/site-visits',
+  requireAuth,
+  validateParams(LeadIdParamsSchema),
+  listSiteVisits,
+);
 leadsRouter.post(
   '/:leadId/site-visits',
   requireAuth,
@@ -48,6 +63,20 @@ leadsRouter.patch(
   validateParams(SiteVisitParamsSchema),
   validateBody(UpdateSiteVisitRequestSchema),
   updateSiteVisit,
+);
+leadsRouter.post(
+  '/:leadId/site-visits/:visitId/properties',
+  requireAuth,
+  validateParams(SiteVisitParamsSchema),
+  validateBody(AttachSiteVisitPropertyRequestSchema),
+  attachSiteVisitProperty,
+);
+leadsRouter.patch(
+  '/:leadId/site-visits/:visitId/properties/:propertyId',
+  requireAuth,
+  validateParams(SiteVisitPropertyParamsSchema),
+  validateBody(UpdateSiteVisitPropertyRequestSchema),
+  updateSiteVisitPropertyStatus,
 );
 
 leadsRouter.post(

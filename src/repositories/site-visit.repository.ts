@@ -19,6 +19,10 @@ export class SiteVisitRepository {
     return this.repo.findOne({ where: { id, leadId } });
   }
 
+  async findByLeadId(leadId: string): Promise<SiteVisit[]> {
+    return this.repo.find({ where: { leadId }, order: { scheduledAt: 'DESC' } });
+  }
+
   async create(data: Partial<SiteVisit>): Promise<SiteVisit> {
     const siteVisit = this.repo.create(data);
     return this.repo.save(siteVisit);

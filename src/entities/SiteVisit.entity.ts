@@ -6,12 +6,14 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
 // 3. Internal
 import { AppUser } from '@/entities/AppUser.entity';
 import { Lead } from '@/entities/Lead.entity';
+import { SiteVisitProperty } from '@/entities/SiteVisitProperty.entity';
 
 export enum SiteVisitStatus {
   SCHEDULED = 'Scheduled',
@@ -41,12 +43,6 @@ export class SiteVisit {
   @Column({ name: 'scheduled_at', type: 'timestamptz' })
   scheduledAt!: Date;
 
-  @Column({ name: 'property_project', type: 'varchar', length: 255 })
-  propertyProject!: string;
-
-  @Column({ name: 'units', type: 'varchar', length: 255, nullable: true })
-  units!: string | null;
-
   @Column({ name: 'accompanying_saleman_id', type: 'uuid', nullable: true })
   accompanyingSalemanId!: string | null;
 
@@ -70,4 +66,7 @@ export class SiteVisit {
 
   @CreateDateColumn({ name: 'created_at', type: 'timestamptz' })
   createdAt!: Date;
+
+  @OneToMany(() => SiteVisitProperty, (siteVisitProperty) => siteVisitProperty.siteVisit)
+  attachedProperties!: SiteVisitProperty[];
 }
