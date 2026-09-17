@@ -21,6 +21,11 @@ const EXPECTED_TABLES: readonly string[] = [
 // where a single hook or test issues more than one invocation.
 const CLI_TIMEOUT_MS = 30_000;
 
+// Keep in sync with the number of files under migrations/ — this suite
+// reverts every applied migration to prove each down() works, so it must
+// know exactly how many there are.
+const MIGRATION_COUNT = 3;
+
 const EXPECTED_INDEXES: readonly string[] = [
   'idx_app_user_role_id',
   'idx_lead_assigned_saleman_id',
@@ -87,10 +92,10 @@ describe('CA-137 — CRM database schema and migrations', () => {
   }, CLI_TIMEOUT_MS);
 
   afterAll(() => {
-    // Two migrations were applied (InitSchema, SeedRoles) — revert both so
-    // the test database is left clean, and to exercise/prove down() works.
-    runTypeOrmCli('migration:revert');
-    runTypeOrmCli('migration:revert');
+    // Revert every applied migration so the test database is left clean.
+    for (let i = 0; i < MIGRATION_COUNT; i += 1) {
+      runTypeOrmCli('migration:revert');
+    }
   }, CLI_TIMEOUT_MS);
 
   it('creates all 6 HLD tables', async () => {
@@ -128,30 +133,49 @@ describe('CA-137 — CRM database schema and migrations', () => {
   });
 
   it(
-    'reverts cleanly: down-migrations remove both seeded roles and all tables',
+    'reverts cleanly: down-migrations undo the bootstrap admin, then seeded roles, then all tables',
     async () => {
-      // Revert SeedRoles first (reverse order of application).
+      // Revert SeedBootstrapAdmin first (reverse order of application) —
+      // roles are untouched, only the bootstrap app_user row is removed.
       runTypeOrmCli('migration:revert');
 
       const clientAfterFirstRevert = await connect();
       try {
-        const result = await clientAfterFirstRevert.query('SELECT * FROM "role"');
-        expect(result.rows).toHaveLength(0);
-        await expect(tableExists(clientAfterFirstRevert, 'lead')).resolves.toBe(true);
+        const result = await clientAfterFirstRevert.query<{ name: string }>(
+          'SELECT "name" FROM "role" ORDER BY "name"',
+        );
+        expect(result.rows.map((row) => row.name)).toEqual(['Admin', 'SalesMan']);
+        const adminUser = await clientAfterFirstRevert.query(
+          'SELECT * FROM "app_user" WHERE "email" = $1',
+          ['admin@ccrm.local'],
+        );
+        expect(adminUser.rows).toHaveLength(0);
       } finally {
         await clientAfterFirstRevert.end();
+      }
+
+      // Revert SeedRoles — role table now empty, tables still exist.
+      runTypeOrmCli('migration:revert');
+
+      const clientAfterSecondRevert = await connect();
+      try {
+        const result = await clientAfterSecondRevert.query('SELECT * FROM "role"');
+        expect(result.rows).toHaveLength(0);
+        await expect(tableExists(clientAfterSecondRevert, 'lead')).resolves.toBe(true);
+      } finally {
+        await clientAfterSecondRevert.end();
       }
 
       // Revert InitSchema — drops every table.
       runTypeOrmCli('migration:revert');
 
-      const clientAfterSecondRevert = await connect();
+      const clientAfterThirdRevert = await connect();
       try {
         for (const table of EXPECTED_TABLES) {
-          await expect(tableExists(clientAfterSecondRevert, table)).resolves.toBe(false);
+          await expect(tableExists(clientAfterThirdRevert, table)).resolves.toBe(false);
         }
       } finally {
-        await clientAfterSecondRevert.end();
+        await clientAfterThirdRevert.end();
       }
 
       // Re-apply so afterAll's revert calls have a known (empty-DB) starting

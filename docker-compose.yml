@@ -1,7 +1,11 @@
 version: '3.9'
 
-# Local dev datastores only for this story (CA-137). Full app containerization
-# (CRM API / Web Frontend / Agents module services) is delivered under CA-141.
+# CA-141 (CRM module scope only): CRM API Service + its datastore, runnable
+# via a single `docker compose up`. The Web Frontend and the entire Agents
+# module (ADK Web UI, Agent Orchestrator, MCP Server) are separate,
+# not-yet-built projects — CA-141's full "six containers" acceptance
+# criterion can't be satisfied from this repo alone; this covers the CRM
+# module's three (Web Frontend excepted, also a separate project).
 
 services:
   postgres:
@@ -30,6 +34,33 @@ services:
     healthcheck:
       test: ['CMD', 'redis-cli', 'ping']
       interval: 5s
+      timeout: 5s
+      retries: 10
+
+  crm-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      LOG_LEVEL: info
+      DATABASE_URL: postgres://ccrm:ccrm@postgres:5432/ccrm
+      DB_POOL_MAX: 10
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:-replace-with-a-real-secret-at-least-32-characters-long}
+      JWT_EXPIRES_IN: 30m
+    ports:
+      - '3000:3000'
+    healthcheck:
+      test: ['CMD', 'node', '-e', "fetch('http://localhost:3000/healthz').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 10s
       timeout: 5s
       retries: 10
 

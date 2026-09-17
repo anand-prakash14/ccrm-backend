@@ -27,9 +27,31 @@ cp .env.example .env
 # 4. Run migrations
 npm run migration:run
 
-# 5. Start the dev server (available once the first API story adds src/main.ts)
+# 5. Start the dev server
 npm run dev
 ```
+
+### Running the whole CRM module in Docker (CA-141)
+
+```bash
+docker compose up --build
+# once postgres is healthy, apply migrations against the containerized DB:
+docker compose run --rm crm-api npm run migration:run:prod
+```
+
+This starts `postgres`, `redis`, and `crm-api` (built from the `Dockerfile`, multi-stage:
+`npm run build` produces `dist/`, then a slim `--omit=dev` runtime image runs it via
+`npm start`). **Not verified end-to-end in this environment** — no Docker is installed on
+the machine this was built on; the underlying build (`npm run build`), production start
+(`npm start`), and production migration (`npm run migration:run:prod`) commands were each
+verified directly against the compiled `dist/` output and a real Postgres instance, but the
+actual `docker build`/`docker compose up` invocation itself has not been run. Please verify
+on a machine with Docker before relying on it.
+
+Only the CRM module (`crm-api`, `postgres`; `redis` provisioned for later cache stories) is
+covered here — the Web Frontend and the entire Agents module (ADK Web UI, Agent
+Orchestrator, MCP Server) are separate, not-yet-built projects, so CA-141's full "all six
+containers" acceptance criterion isn't satisfiable from this repo alone.
 
 ## Common Commands
 

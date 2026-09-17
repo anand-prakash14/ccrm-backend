@@ -9,9 +9,9 @@
   },
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "tsc -p tsconfig.build.json",
     "dev": "ts-node-dev --respawn --transpile-only -r tsconfig-paths/register src/main.ts",
-    "start": "node -r tsconfig-paths/register dist/main.js",
+    "start": "node -r ./scripts/register-paths.js dist/src/main.js",
     "typecheck": "tsc --noEmit",
     "lint": "eslint src tests --ext .ts",
     "format": "prettier --write src tests",
@@ -20,7 +20,8 @@
     "test:coverage": "jest --coverage",
     "migration:generate": "typeorm-ts-node-commonjs migration:generate -d src/config/data-source.ts",
     "migration:run": "typeorm-ts-node-commonjs migration:run -d src/config/data-source.ts",
-    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/config/data-source.ts"
+    "migration:revert": "typeorm-ts-node-commonjs migration:revert -d src/config/data-source.ts",
+    "migration:run:prod": "node -r ./scripts/register-paths.js node_modules/typeorm/cli.js migration:run -d dist/src/config/data-source.js"
   },
   "dependencies": {
     "axios": "^1.7.9",

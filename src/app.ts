@@ -10,6 +10,8 @@ import { usersRouter } from '@/routes/users.routes';
 import { agentContextMiddleware } from '@/middleware/agent-context.middleware';
 import { correlationIdMiddleware } from '@/middleware/correlation-id.middleware';
 import { errorMiddleware } from '@/middleware/error.middleware';
+import { errorRateMonitorMiddleware } from '@/middleware/error-rate-monitor.middleware';
+import { requestLoggingMiddleware } from '@/middleware/request-logging.middleware';
 
 export function createApp(): Express {
   const app = express();
@@ -17,6 +19,8 @@ export function createApp(): Express {
   app.use(express.json());
   app.use(correlationIdMiddleware);
   app.use(agentContextMiddleware);
+  app.use(requestLoggingMiddleware);
+  app.use(errorRateMonitorMiddleware);
 
   app.use(healthRouter);
   app.use('/v1/auth', authRouter);
