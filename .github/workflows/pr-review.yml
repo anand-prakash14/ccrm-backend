@@ -1,0 +1,63 @@
+name: Claude PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  claude-review:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: read
+      id-token: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Review PR with Claude
+        uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          use_sticky_comment: true
+          prompt: |
+            REPO: ${{ github.repository }}
+            PR NUMBER: ${{ github.event.pull_request.number }}
+            BASE BRANCH: ${{ github.event.pull_request.base.ref }}
+
+            You are the Node/Express Code Review Agent for this repository.
+            Its full checklist and report format are defined in
+            `.claude/agents/code-review-agent.md` — read that file first and
+            follow it exactly.
+
+            Steps:
+            1. Read `.claude/agents/code-review-agent.md` in full.
+            2. Run `gh pr diff ${{ github.event.pull_request.number }}` to see
+               the changed files, then `Read` each changed file (not just the
+               diff hunks) so you have full context for every checklist item
+               (TypeScript types, Express routes/controllers, service and
+               repository layers, TypeORM entities/migrations, Zod DTOs,
+               Redis cache usage, async correctness, security).
+            3. Run `Grep` for the risky patterns the agent file calls out
+               (raw SQL template strings, `eval(`, hardcoded secrets, `any`
+               types, `jwt.decode(`, missing `await`, `redis.set(` without a
+               TTL, `console.log`, empty `catch {}` blocks).
+            4. This is a CI run with no prior conversation and no approved LLD
+               plan — skip the "Plan Checksum" comparison under Plan
+               Compliance and instead write: "No LLD plan for this run —
+               reviewed the full diff against the standing checklist."
+            5. Produce the report using exactly the Markdown structure in
+               "Review Report Format" in the agent file (Critical / Major /
+               Minor / Suggestions, then a short Summary), with a Go / No-Go
+               decision.
+            6. Post that report as a single PR comment:
+               `gh pr comment ${{ github.event.pull_request.number }} --body-file <path>`
+               (write the report to a temp file first). Do not post inline
+               line comments — one summary comment per review.
+
+            Only flag what the checklist covers. Do not propose or make code
+            changes — this is a review-only run.
+          claude_args: |
+            --allowedTools "Read,Grep,Glob,Bash(gh pr diff:*),Bash(gh pr comment:*),Bash(gh pr view:*)"
